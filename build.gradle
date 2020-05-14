@@ -34,6 +34,7 @@ buildscript {
     classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:$bintrayVersion"
     classpath "org.jfrog.buildinfo:build-info-extractor-gradle:$jfrogExtractorVersion"
     classpath "biz.aQute.bnd:biz.aQute.bnd.gradle:$bndVersion"
+    classpath "info.solidsoft.gradle.pitest:gradle-pitest-plugin:1.5.1"
   }
 }
 
@@ -65,9 +66,15 @@ apply plugin: "com.github.hierynomus.license"
 apply plugin: "com.jfrog.bintray"
 apply plugin: "com.jfrog.artifactory"
 apply plugin: "eclipse"
+apply plugin: 'info.solidsoft.pitest'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
+
+pitest {
+  threads = 4
+  enableDefaultIncrementalAnalysis = true
+}
 
 repositories {
   mavenCentral()
@@ -252,7 +259,7 @@ test {
     }
 }
 
-task testng(type: Test) { 
+task testng(type: Test) {
      useTestNG()
      testLogging  {
         events=["skipped", "failed"]
@@ -263,13 +270,13 @@ task testng(type: Test) {
 
         info.events = ["failed", "skipped"]
         info.exceptionFormat="full"
-        
+
         warn.events = ["failed", "skipped"]
         warn.exceptionFormat="full"
      }
-} 
+}
 
-check.dependsOn testng 
+check.dependsOn testng
 
 jacoco {
     toolVersion = jacocoVersion // See http://www.eclemma.org/jacoco/.
@@ -314,65 +321,65 @@ checkstyle {
 
 if (rootProject.hasProperty("releaseMode")) {
 
-  if ("branch".equals(rootProject.releaseMode)) {
-    // From https://github.com/ReactiveX/RxAndroid/blob/2.x/rxandroid/build.gradle#L94
-  
-    println("ReleaseMode: " + rootProject.releaseMode);
-    artifactory {
-        contextUrl = "https://oss.jfrog.org"
-    
-        publish {
-            repository {
-                repoKey = "oss-snapshot-local"
-    
-                username = rootProject.bintrayUser
-                password = rootProject.bintrayKey
-            }
-    
-            defaults {
-                publishConfigs("archives")
+    if ("branch".equals(rootProject.releaseMode)) {
+        // From https://github.com/ReactiveX/RxAndroid/blob/2.x/rxandroid/build.gradle#L94
+
+        println("ReleaseMode: " + rootProject.releaseMode);
+        artifactory {
+            contextUrl = "https://oss.jfrog.org"
+
+            publish {
+                repository {
+                    repoKey = "oss-snapshot-local"
+
+                    username = rootProject.bintrayUser
+                    password = rootProject.bintrayKey
+                }
+
+                defaults {
+                    publishConfigs("archives")
+                }
             }
         }
+
+        build.finalizedBy(artifactoryPublish)
     }
-    
-    build.finalizedBy(artifactoryPublish)
-  }
 
-   if ("full".equals(rootProject.releaseMode)) {
-      // based on https://github.com/bintray/gradle-bintray-plugin
-      def rver = version;
+    if ("full".equals(rootProject.releaseMode)) {
+        // based on https://github.com/bintray/gradle-bintray-plugin
+        def rver = version;
 
-      println("ReleaseMode: " + rootProject.releaseMode + " version " + rver);
+        println("ReleaseMode: " + rootProject.releaseMode + " version " + rver);
 
-      bintray {
-         user = rootProject.bintrayUser
-         key = rootProject.bintrayKey
-         configurations = ["archives"]
-         publish = true
-         pkg {
-           repo = "RxJava"
-           name = "RxJava"
-           userOrg = "reactivex"
-           labels = ["rxjava", "reactivex"]
-           licenses = ["Apache-2.0"]
-           vcsUrl = "https://github.com/ReactiveX/RxJava.git"
-           version {
-             name = rver
-             gpg {
-                sign = true
-             }
-             mavenCentralSync {
-               sync = true 
-               user = rootProject.sonatypeUsername
-               password = rootProject.sonatypePassword
-               close = "1"
-             }
-           }
-         }
-      }
-      
-      build.finalizedBy(bintrayUpload)
-   }
+        bintray {
+            user = rootProject.bintrayUser
+            key = rootProject.bintrayKey
+            configurations = ["archives"]
+            publish = true
+            pkg {
+                repo = "RxJava"
+                name = "RxJava"
+                userOrg = "reactivex"
+                labels = ["rxjava", "reactivex"]
+                licenses = ["Apache-2.0"]
+                vcsUrl = "https://github.com/ReactiveX/RxJava.git"
+                version {
+                    name = rver
+                    gpg {
+                        sign = true
+                    }
+                    mavenCentralSync {
+                        sync = true
+                        user = rootProject.sonatypeUsername
+                        password = rootProject.sonatypePassword
+                        close = "1"
+                    }
+                }
+            }
+        }
+
+        build.finalizedBy(bintrayUpload)
+    }
 }
 
 apply from: file("gradle/javadoc_cleanup.gradle")
